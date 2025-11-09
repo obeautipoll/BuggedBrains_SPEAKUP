@@ -1,15 +1,19 @@
 //loginworking
 
-import React, { useState , useEffect} from 'react';
-import { useNavigate, Navigate , Link} from 'react-router-dom';
+import React, { useMemo, useState } from 'react';
+import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { useAuth } from '../../../contexts/authContext';
 import { doSignInWithEmailAndPassword, doSignInWithGoogle } from '../../../firebase/auth';
 import "../../../styles/students.css";
 
-import { getFirestore, doc, getDoc } from "firebase/firestore";
+const ROLE_ROUTE_MAP = {
+  admin: "/adashboard",
+  staff: "/sdashboard",
+  kasama: "/sdashboard",
+  student: "/dashboard",
+};
 
-
-
+const resolveRouteByRole = (role) => ROLE_ROUTE_MAP[role?.toLowerCase()] || "/dashboard";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -17,26 +21,21 @@ const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [user, setUser] = useState(null);
+
+  const storedUser = useMemo(() => {
+    try {
+      const parsed = JSON.parse(localStorage.getItem('user'));
+      return parsed || null;
+    } catch (error) {
+      console.error('Failed to parse stored user:', error);
+      return null;
+    }
+  }, [userLoggedIn]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
-
-  // Function to get user data (role) from Firestore
-const getUserDataFromFirestore = async (uid) => {
-  const db = getFirestore();
-  const userDocRef = doc(db, "users", uid);  // Fetch the user document using the UID
-  const docSnap = await getDoc(userDocRef);
-  const user = JSON.parse(localStorage.getItem('user'));
-  if (docSnap.exists()) {
-    return docSnap.data();  // Return the user data (including role)
-  } else {
-    throw new Error("User not found");
-  }
-};
-
-
 
   const handleLogin = async (e) => {
   e.preventDefault();
@@ -53,15 +52,10 @@ const getUserDataFromFirestore = async (uid) => {
 
     console.log("User object:", user);
 
-    // Check the role and redirect accordingly
-    if (user.role === 'admin') {
-      navigate('/adashboard');
-    } else {
-      navigate('/dashboard');
-    }
+    navigate(resolveRouteByRole(user.role));
   } catch (err) {
     setIsSigningIn(false);
-    setErrorMessage('Invalid email or password');
+    setErrorMessage(err?.message || 'Invalid email or password');
   }
 };
 
@@ -72,34 +66,22 @@ const getUserDataFromFirestore = async (uid) => {
       try {
         const user = await doSignInWithGoogle();
 
-        // Assign role based on user data
         const role = user?.role || 'student';
 
-        // Store user info and token
         localStorage.setItem('token', 'mockToken123');
         localStorage.setItem('user', JSON.stringify(user));
 
-        if (role === 'admin') {
-          navigate('/admin/dashboard');
-        } else {
-          navigate('/dashboard');
-        }
+        navigate(resolveRouteByRole(role));
       } catch (err) {
         setIsSigningIn(false);
-        setErrorMessage('Something went wrong with Google Sign-In');
+        setErrorMessage(err?.message || 'Something went wrong with Google Sign-In');
       }
     }
   };
-  
-    useEffect(() => {
-   if (userLoggedIn && user) {
-      if (user.role === 'admin') {
-        return <Navigate to="/admin/dashboard" replace />;
-      } else {
-        return <Navigate to="/student/dashboard" replace />;
-      }
-    }
-  }, [userLoggedIn, user]);
+
+  if (userLoggedIn && storedUser?.role) {
+    return <Navigate to={resolveRouteByRole(storedUser.role)} replace />;
+  }
 
   return (
     <div className="login-container">

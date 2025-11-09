@@ -6,32 +6,30 @@ import { doSignOut } from "../../../firebase/auth"; // Firebase Sign-Out functio
 const SideBar = () => {
   const navigate = useNavigate();
 
-  // Function to handle logout
-  const handleLogout = () => {
-    // Perform sign out
-    doSignOut()
-      .then(() => {
-        // Clear session data (like tokens)
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
+  const clearSession = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+  };
 
-        // Navigate to the login page
-        navigate("/login");
-      })
-      .catch((err) => {
-        console.error("Logout failed", err);
-      });
+  // Function to handle logout
+  const handleLogout = async () => {
+    try {
+      await doSignOut();
+    } catch (err) {
+      console.error("Logout failed", err);
+    } finally {
+      clearSession();
+      navigate("/login", { replace: true });
+    }
   };
 
   // Function to handle navigation
   const handleNavigation = (page) => {
     switch (page) {
       case "logout":
-        // Confirm before logging out
         const confirmLogout = window.confirm("Are you sure you want to log out?");
         if (confirmLogout) {
           handleLogout(); // Call the logout function
-          alert("You have been logged out successfully!");
         }
         break;
       case "dashboard":

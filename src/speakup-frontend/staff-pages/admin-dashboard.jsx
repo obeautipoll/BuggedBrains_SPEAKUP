@@ -9,7 +9,9 @@ import AdminNavbar from './components/NavBar';
 import UrgentComplaintsWidget from './components/urgency-level';
 
 const AdminDashboard = () => {
-  const { currentUser, userRole } = useAuth();  // Get currentUser and userRole from AuthContext
+  const { currentUser } = useAuth();
+  const [roleLabel, setRoleLabel] = useState('Staff Role');
+  const [staffRole, setStaffRole] = useState(null);
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
@@ -20,11 +22,33 @@ const AdminDashboard = () => {
   const [statsError, setStatsError] = useState(null);
 
   useEffect(() => {
+    try {
+      const storedUser = JSON.parse(localStorage.getItem('user'));
+      if (storedUser?.role) {
+        setRoleLabel(storedUser.role);
+        setStaffRole(storedUser.role.toLowerCase());
+      } else {
+        setStaffRole('');
+      }
+    } catch (error) {
+      console.error('Failed to parse stored user for role:', error);
+      setStaffRole('');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (staffRole === null) return;
     const fetchComplaintStats = async () => {
       try {
         const snapshot = await getDocs(collection(db, 'complaints'));
 
-        const counts = snapshot.docs.reduce(
+        const filteredDocs = snapshot.docs.filter((doc) => {
+          if (!staffRole) return true;
+          const assignedRole = (doc.data()?.assignedRole || '').toLowerCase();
+          return assignedRole === staffRole;
+        });
+
+        const counts = filteredDocs.reduce(
           (acc, doc) => {
             const data = doc.data() || {};
             const status = (data.status || '').toString().toLowerCase().trim();
@@ -64,7 +88,7 @@ const AdminDashboard = () => {
     };
 
     fetchComplaintStats();
-  }, []);
+  }, [staffRole]);
 
   const formatStatValue = (value) => (isLoadingStats ? '...' : value);
 
@@ -116,7 +140,7 @@ const AdminDashboard = () => {
           <p className="text-2xl font-bold pt-14">
             {getGreeting()}, {currentUser?.displayName || currentUser?.email || 'Admin'}!
           </p>
-          <p className="text-lg">{userRole || 'Admin'}</p>
+          <p className="text-lg">{roleLabel || 'Staff Role'}</p>
         </div>
 
         {/* Analytics Cards */}

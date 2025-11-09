@@ -32,27 +32,27 @@ const AdminMonitorComplaints = () => {
   const [noteInput, setNoteInput] = useState("");
   const [isSavingNote, setIsSavingNote] = useState(false);
   const [noteError, setNoteError] = useState("");
-  const [noteRole, setNoteRole] = useState("");
-  const [assignmentError, setAssignmentError] = useState("");
+  const [staffRole, setStaffRole] = useState(null);
   const { currentUser } = useAuth();
-  const ASSIGNMENT_OPTIONS = [
-    { value: "", label: "Unassigned" },
-    { value: "staff", label: "Staff" },
-    { value: "kasama", label: "KASAMA" },
-  ];
 
-  const getCurrentUserRole = () => {
+  useEffect(() => {
     try {
       const storedUser = JSON.parse(localStorage.getItem("user"));
-      return (storedUser?.role || "admin").toLowerCase();
+      const normalizedRole = storedUser?.role?.toLowerCase() || "";
+      if (normalizedRole === "staff" || normalizedRole === "kasama") {
+        setStaffRole(normalizedRole);
+      } else {
+        setStaffRole("");
+      }
     } catch (error) {
-      console.error("Failed to parse stored user role:", error);
-      return "admin";
+      console.error("Error determining staff role:", error);
+      setStaffRole("");
     }
-  };
+  }, []);
 
   // 🔥 Fetch complaints from Firestore
   useEffect(() => {
+    if (staffRole === null) return;
     const fetchComplaints = async () => {
       try {
         const q = query(collection(db, "complaints"), orderBy("submissionDate", "desc"));
@@ -63,15 +63,22 @@ const AdminMonitorComplaints = () => {
           ...doc.data(),
         }));
 
-        setComplaints(fetchedComplaints);
-        setFilteredComplaints(fetchedComplaints);
+        let scopedComplaints = fetchedComplaints;
+        if (staffRole) {
+          scopedComplaints = fetchedComplaints.filter(
+            (complaint) => (complaint.assignedRole || "").toLowerCase() === staffRole
+          );
+        }
+
+        setComplaints(scopedComplaints);
+        setFilteredComplaints(scopedComplaints);
       } catch (error) {
         console.error("❌ Error fetching complaints:", error);
       }
     };
 
     fetchComplaints();
-  }, []);
+  }, [staffRole]);
 
   // 🔎 Filtering logic
   useEffect(() => {
@@ -132,6 +139,11 @@ const AdminMonitorComplaints = () => {
       return;
     }
 
+    if (!staffRole) {
+      alert("We cannot determine your role yet. Please try again shortly.");
+      return;
+    }
+
     const existingNote = getSharedNote(complaint);
     setNoteModalComplaint(complaint);
     setNoteInput(existingNote?.note || "");
@@ -147,6 +159,10 @@ const AdminMonitorComplaints = () => {
 
   const handleSaveAdminNote = async () => {
     if (!noteModalComplaint || !currentUser) return;
+    if (!staffRole) {
+      setNoteError("Your staff role is not set. Please reload and try again.");
+      return;
+    }
 
     if (!noteInput.trim()) {
       setNoteError("Please enter a note before saving.");
@@ -159,10 +175,11 @@ const AdminMonitorComplaints = () => {
     try {
       const adminId = getAdminIdentifier();
       const adminName = getAdminDisplayName();
+
       const updatedNote = {
         adminId,
         adminName,
-        adminRole: getCurrentUserRole(),
+        adminRole: staffRole || "staff",
         note: noteInput.trim(),
         updatedAt: new Date().toISOString(),
       };
@@ -192,27 +209,6 @@ const AdminMonitorComplaints = () => {
       setNoteError("Unable to save note right now. Please try again.");
     } finally {
       setIsSavingNote(false);
-    }
-  };
-
-  const handleAssignRoleChange = async (complaint, newRole) => {
-    setAssignmentError("");
-
-    const applyLocalUpdate = (list) =>
-      list.map((item) =>
-        item.id === complaint.id ? { ...item, assignedRole: newRole } : item
-      );
-
-    setComplaints((prev) => applyLocalUpdate(prev));
-    setFilteredComplaints((prev) => applyLocalUpdate(prev));
-
-    try {
-      await updateDoc(doc(db, "complaints", complaint.id), {
-        assignedRole: newRole,
-      });
-    } catch (error) {
-      console.error("Failed to update assignment:", error);
-      setAssignmentError("Unable to update assignment right now.");
     }
   };
 
@@ -295,7 +291,7 @@ const handleUpdateStatus = async (newStatus) => {
   }
 };
 
-  const getStatusClass = (status) => {
+const getStatusClass = (status) => {
   switch (status?.toLowerCase()) {
     case "pending":
       return "status-pending"; // CSS class for Pending status color
@@ -391,7 +387,6 @@ const handleUpdateStatus = async (newStatus) => {
                   <th>Category</th>
                   <th>Status</th>
                   <th>Date</th>
-                  <th>Assigned To</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -418,19 +413,7 @@ const handleUpdateStatus = async (newStatus) => {
                       </span>
                     </td>
                       <td>{formatDateTime(c.submissionDate)}</td>
-                      <td>
-                        <select
-                          className="assignment-dropdown"
-                          value={(c.assignedRole || "").toLowerCase()}
-                          onChange={(e) => handleAssignRoleChange(c, e.target.value)}
-                        >
-                          {ASSIGNMENT_OPTIONS.map((option) => (
-                            <option key={option.value || "unassigned"} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
+                     
                       <td>
                         <button
                           className="btn-note"
@@ -438,8 +421,8 @@ const handleUpdateStatus = async (newStatus) => {
                           disabled={!currentUser}
                           title={
                             getSharedNote(c)
-                              ? "Update the note for this complaint"
-                              : "Add a note for this complaint"
+                              ? "Update the note for this assignment"
+                              : "Add a note for this assignment"
                           }
                         >
                           {getSharedNote(c) ? "Update Note" : "Add Note"}
@@ -451,12 +434,6 @@ const handleUpdateStatus = async (newStatus) => {
               </tbody>
             </table>
           </div>
-
-          {assignmentError && (
-            <p className="inline-error" style={{ marginTop: "0.5rem" }}>
-              {assignmentError}
-            </p>
-          )}
 
               {showModal && selectedComplaint && (
           <div className="modal-overlay" onClick={closeModal}>
@@ -488,24 +465,6 @@ const handleUpdateStatus = async (newStatus) => {
                     selectedComplaint.otherDescription ||
                     "No description provided"}
                     </p>
-                {selectedComplaint.adminNotes && selectedComplaint.adminNotes.length > 0 && (
-                  <div className="notes-section">
-                    <h4>Internal Notes</h4>
-                    <div className="notes-list">
-                      {selectedComplaint.adminNotes.map((note) => (
-                        <div className="note-card" key={`${note.adminId}-${note.updatedAt}`}>
-                          <div className="note-card-header">
-                            <span className="note-author">
-                              {note.adminName || "Unknown"} · {note.adminRole ? note.adminRole.toUpperCase() : "ADMIN"}
-                            </span>
-                            <span className="note-timestamp">{formatNoteTimestamp(note.updatedAt)}</span>
-                          </div>
-                          <p className="note-text">{note.note}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
                   </div>
                 </div>
               </div>
@@ -522,9 +481,6 @@ const handleUpdateStatus = async (newStatus) => {
                 </button>
               </div>
               <div className="modal-body">
-                <p className="modal-subtext">
-                  Notes are shared with admins and the assigned role ({noteRole?.toUpperCase()}).
-                </p>
                 <textarea
                   className="note-textarea"
                   placeholder="Write a quick update for this complaint..."
@@ -554,14 +510,7 @@ const handleUpdateStatus = async (newStatus) => {
         )}
         </div>
     </div>
-    );
-  };
-
-  const formatNoteTimestamp = (value) => {
-    if (!value) return "Just now";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "Just now";
-    return date.toLocaleString();
-  };
+  );
+};
 
 export default AdminMonitorComplaints;

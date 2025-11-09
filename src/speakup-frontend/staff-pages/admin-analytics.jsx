@@ -140,6 +140,7 @@ const TREND_VIEWS = [
 ];
 
 const AdminAnalytics = () => {
+  const [staffRole, setStaffRole] = useState(null);
   const [complaints, setComplaints] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -147,10 +148,30 @@ const AdminAnalytics = () => {
   const [activeTrendPeriod, setActiveTrendPeriod] = useState(null);
 
   useEffect(() => {
+    try {
+      const storedUser = JSON.parse(localStorage.getItem('user'));
+      if (storedUser?.role) {
+        setStaffRole(storedUser.role.toLowerCase());
+      } else {
+        setStaffRole('');
+      }
+    } catch (err) {
+      console.error('Failed to parse stored user role:', err);
+      setStaffRole('');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (staffRole === null) return;
     const fetchComplaints = async () => {
       try {
         const snapshot = await getDocs(collection(db, 'complaints'));
-        const docs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        const docs = snapshot.docs
+          .map((doc) => ({ id: doc.id, ...doc.data() }))
+          .filter((doc) => {
+            if (!staffRole) return true;
+            return (doc.assignedRole || '').toLowerCase() === staffRole;
+          });
         setComplaints(docs);
         setError(null);
       } catch (err) {
@@ -162,7 +183,7 @@ const AdminAnalytics = () => {
     };
 
     fetchComplaints();
-  }, []);
+  }, [staffRole]);
 
   const statusCounts = useMemo(() => {
     return complaints.reduce(

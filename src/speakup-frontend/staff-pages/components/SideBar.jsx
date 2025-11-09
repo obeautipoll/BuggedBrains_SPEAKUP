@@ -28,22 +28,19 @@ const SideBar = () => {
         handleLogout();
         break;
       case "dashboard":
-        navigate("/adashboard");
+        navigate("/sdashboard");
         break;
       case "monitor":
-        navigate("/amonitorcomplaints");
-        break;
-      case "users":
-        navigate("/amanageusers");
+        navigate("/smonitorcomplaints");
         break;
       case "analytics":
-        navigate("/aanalytics");
+        navigate("/sanalytics");
         break;
       case "notifications":
-        navigate("/anotifications");
+        navigate("/snotifications");
         break;
       case "settings":
-        navigate("/asettings");
+        navigate("/ssettings");
         break;
       default:
         console.error("Unknown navigation page:", page);
@@ -60,42 +57,37 @@ const SideBar = () => {
         
         <ul className="sidebar-links">
           <li 
-            className={window.location.pathname === "/adashboard" ? "active" : ""}
+            className={window.location.pathname === "/sdashboard" ? "active" : ""}
             onClick={() => handleNavigation("dashboard")}
           >
             <i className="fa-solid fa-gauge"></i> Dashboard
           </li>
 
           <li 
-            className={window.location.pathname === "/amonitorcomplaints" ? "active" : ""}
+            className={window.location.pathname === "/smonitorcomplaints" ? "active" : ""}
             onClick={() => handleNavigation("monitor")}
           >
             <i className="fa-solid fa-file-lines"></i> Monitor Complaints
           </li>
 
-          <li 
-            className={window.location.pathname === "/amanageusers" ? "active" : ""}
-            onClick={() => handleNavigation("users")}
-          >
-            <i className="fa-solid fa-users"></i> User Management
-          </li>
+         
 
           <li 
-            className={window.location.pathname === "/aanalytics" ? "active" : ""}
+            className={window.location.pathname === "/sanalytics" ? "active" : ""}
             onClick={() => handleNavigation("analytics")}
           >
             <i className="fa-solid fa-chart-bar"></i> Reports & Analytics
           </li>
 
           <li 
-            className={window.location.pathname === "/anotifications" ? "active" : ""}
+            className={window.location.pathname === "/snotifications" ? "active" : ""}
             onClick={() => handleNavigation("notifications")}
           >
             <i className="fa-solid fa-bell"></i> Notifications
           </li>
 
           <li 
-            className={window.location.pathname === "/asettings" ? "active" : ""}
+            className={window.location.pathname === "/ssettings" ? "active" : ""}
             onClick={() => handleNavigation("settings")}
           >
             <i className="fa-solid fa-gear"></i> Settings

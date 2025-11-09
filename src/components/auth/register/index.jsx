@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Navigate, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../../contexts/authContext";
 import { doCreateUserWithEmailAndPassword } from "../../../firebase/auth";
@@ -7,6 +7,15 @@ import "../../../styles/students.css";
 const Register = () => {
   const { userLoggedIn } = useAuth();
   const navigate = useNavigate();
+  const storedUser = useMemo(() => {
+    try {
+      const parsed = JSON.parse(localStorage.getItem("user"));
+      return parsed || null;
+    } catch (error) {
+      console.error("Failed to parse stored user:", error);
+      return null;
+    }
+  }, [userLoggedIn]);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -17,8 +26,12 @@ const Register = () => {
   const [successMessage, setSuccessMessage] = useState('');
 
   // Redirect if already logged in
-  if (userLoggedIn) {
-    return <Navigate to="/" replace={true} />;
+  if (userLoggedIn && storedUser?.role === "admin") {
+    return <Navigate to="/adashboard" replace />;
+  }
+
+  if (userLoggedIn && storedUser) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   const handleChange = (e) => {
@@ -37,7 +50,6 @@ const Register = () => {
     // Validate password match
     if (password !== confirmPassword) {
       setErrorMessage("Passwords do not match.");
-      alert("Passwords do not match.");
       return;
     }
 
@@ -48,14 +60,14 @@ const Register = () => {
         // Create user with email and password
         await doCreateUserWithEmailAndPassword(email, password);
         setSuccessMessage("Registration successful! Redirecting to login...");
-        alert("Registration successful! Redirecting to login...");
 
         // Redirect to login after a short delay
-        setTimeout(() => navigate("/student/login"), 2000);
+        setTimeout(() => {
+          navigate("/login");
+        }, 1500);
       } catch (err) {
         setIsRegistering(false);
         setErrorMessage(err.message || "Something went wrong. Please try again.");
-        alert(err.message || "Something went wrong. Please try again.");
       }
     }
   };

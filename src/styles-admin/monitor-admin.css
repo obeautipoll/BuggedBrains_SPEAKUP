@@ -312,7 +312,8 @@
   font-style: italic;
 }
 
-.btn-view {
+.btn-view,
+.btn-note {
   background: #800000;
   color: white;
   border: none;
@@ -324,10 +325,34 @@
   transition: all 0.3s ease;
 }
 
-.btn-view:hover {
+.btn-view:hover,
+.btn-note:hover {
   background: #600000;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(128, 0, 0, 0.3);
+}
+
+.btn-note:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.assignment-dropdown {
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+  background: #fff;
+  color: #111827;
+}
+
+.assignment-dropdown:focus {
+  outline: none;
+  border-color: #800000;
+  box-shadow: 0 0 0 2px rgba(128, 0, 0, 0.15);
 }
 
 .no-data {
@@ -456,6 +481,109 @@
   padding: 30px;
   overflow-y: auto;
   flex: 1;
+}
+
+.note-modal {
+  max-width: 520px;
+}
+
+.modal-subtext {
+  color: #6b7280;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.note-textarea {
+  width: 100%;
+  min-height: 140px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 14px;
+  resize: vertical;
+  font-family: inherit;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.note-textarea:focus {
+  border-color: #800000;
+  box-shadow: 0 0 0 3px rgba(128, 0, 0, 0.12);
+  outline: none;
+}
+
+.error-text {
+  color: #b91c1c;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.notes-section {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.notes-section h4 {
+  margin: 0 0 12px;
+  font-size: 16px;
+  color: #111827;
+}
+
+.notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.note-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.note-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #475569;
+  margin-bottom: 6px;
+}
+
+.note-text {
+  margin: 0;
+  font-size: 14px;
+  color: #1f2937;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px 30px 30px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.btn-secondary {
+  background: #e5e7eb;
+  color: #374151;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s ease;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #d1d5db;
+}
+
+.btn-secondary:disabled,
+.btn-primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .tab-content h4 {

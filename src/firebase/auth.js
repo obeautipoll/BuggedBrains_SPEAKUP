@@ -1,18 +1,18 @@
 import { auth } from "./firebase";
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  sendPasswordResetEmail, 
-  sendEmailVerification, 
-  updatePassword, 
-  signInWithPopup, 
-  GoogleAuthProvider 
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+  sendEmailVerification,
+  updatePassword,
+  signInWithPopup,
+  GoogleAuthProvider,
 } from "firebase/auth";
 import { getFirestore, doc, setDoc, getDoc } from "firebase/firestore"; // Firestore imports
 
 // Function to create a new user with email/password
 export const doCreateUserWithEmailAndPassword = async (email, password, role = "student") => {
-  try {
+  try { 
     // Create user with email and password
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user; // Get the user object from the credential
@@ -79,16 +79,21 @@ export const doSignInWithGoogle = async () => {
     const userDocRef = doc(db, "users", user.uid);
     const userDoc = await getDoc(userDocRef);
 
+    let role = "student";
     if (!userDoc.exists()) {
-      // If the user doesn't already exist, create a new user document with the default role 'student'
       await setDoc(userDocRef, {
         email: user.email,
-        role: "student",  // Default role
+        role,
         createdAt: new Date(),
       });
+    } else {
+      const userData = userDoc.data();
+      if (userData?.role) {
+        role = userData.role;
+      }
     }
 
-    return user;
+    return { ...user, role };
   } catch (error) {
     console.error("Error adding user to Firestore:", error);
     throw error;  // Propagate the error to be handled by the caller
